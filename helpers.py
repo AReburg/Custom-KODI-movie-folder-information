@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from PIL import Image
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, exists
 from random import randrange
 import re
 import shutil
@@ -12,86 +12,91 @@ import shutil
 
 
 class Automation():
-    def __init__(self, genre, year, date_added, actor_path, mypath_video):
+    def __init__(self, genre, tagline, user_rating, year, date_added, actor_path, mypath_video):
         """ """
         self.genre = genre
+        self.tagline = tagline
         self.actor_path = actor_path
         self.actor_list = self.get_actor_list()
-        self.role = "Family"
-        self.set = "Family"
+        self.role = "Actress"
+        self.absolut_path_artwork_actors = 'nfs://10.0.0.1/volume1/videos/actors/'
+        self.absolut_path_artwork = 'nfs://10.0.0.1/volume1/TEMP/'
+        self.set = ""
+        self.uid = "home"
         self.date_added = date_added
         self.year = year
+        self.user_rating = user_rating
         self.mypath_video = mypath_video
         self.num_rows_pst = 3
         self.num_col_pst = 1
         self.num_rows_fan = 2
         self.num_col_fan = 2
+        self.number_of_poster = 3
+        self.subfolders = [f.path for f in os.scandir(self.mypath_video) if f.is_dir()]
+
 
     def make_nfo_file(self, file_path, title, duration, width, height, runtime):
         """ Generate NFO File for KODI """
+
         actors = self.get_actor(title)
-        file_path = file_path +".nfo" # mypath_image + folder_name + "/" + folder_name +".nfo"
         f = open(file_path, "w+")
         f.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>\n")
         f.write("<movie>\n")
-        f.write("<title>" + title + "</title>\n")
+        f.write(f"<title>{title}</title>\n")
         f.write("<originaltitle></originaltitle>\n")
-        f.write("<userrating>0</userrating>\n")
+        f.write(f"<userrating>{self.user_rating}</userrating>\n")
         f.write("<top250>0</top250>\n")
-        f.write("<outline>\
-         .</outline>\n")
+        f.write("<outline></outline>\n")
         f.write("<plot></plot>\n")
-        f.write("<tagline>Watch together</tagline>\n")
-        f.write(f"<runtime>" + str(runtime/60) + "</runtime>\n")
-        f.write("<thumb aspect=\"poster\" preview=\"\">" +"</thumb>" +'\n')
+        f.write(f"<tagline>{self.tagline}</tagline>\n")
+        f.write(f"<runtime>{round(runtime)}</runtime>\n")
+        #f.write("<thumb aspect=\"poster\" preview=\"\">" +"</thumb>" +'\n')
         f.write("<fanart>\n")
-        num_images = self.num_rows_fan * self.num_col_fan
-        for idx in range(num_images):
-            fanart = title + "-fanart" + str(idx + 1) + ".jpg"
-            f.write("     <thumb preview=\"" + "nfs://10.0.0.1/volume1/TEMP/" + title +"/" +fanart + "\">" + "nfs://10.0.0.1/volume1/TEMP/"+ title +"/" + fanart + "</thumb>" + '\n')
+        #for idx in range(self.num_rows_fan * self.num_col_fan):
+        #    fanart = f"{title}-fanart{idx}.jpg"
+        #    f.write(f"     <thumb preview=\"{self.absolut_path_artwork}{title}/{fanart}\>{self.absolut_path_artwork}{title}/{fanart}</thumb>\n")
         f.write("</fanart>\n")
         f.write("<mpaa></mpaa>\n")
-        f.write("<playcount>0</playcount>" + '\n')
+        f.write(f"<playcount>{0}</playcount>\n")
         f.write("<lastplayed></lastplayed>\n")
-        f.write("<id>tt0974015</id>\n")
-        f.write("<uniqueid type=\"imdb\" default=\"true\">tt0974015</uniqueid>\n")
-        f.write("<genre>" + self.genre + "</genre>\n")
+        f.write("<id></id>\n")
+        f.write(f"<uniqueid type=\"home\" default=\"true\">{self.uid}</uniqueid>\n")
+        f.write(f"<genre>{self.genre}</genre>\n")
         f.write("<set>\n")
-        f.write("     <name>" + self.set + "</name>\n")
+        f.write(f"     <name>{self.set}</name>\n")
         f.write("     <overview></overview>\n")
         f.write("</set>\n")
         f.write("<director></director>\n")
         f.write("<premiered></premiered>\n")
-        f.write("<year>" + self.year + "</year>\n")
+        f.write(f"<year>{self.year}</year>\n")
         f.write("<status></status>\n")
         f.write("<code></code>\n")
-        f.write("<aired></aired>\n")
         f.write("<aired></aired>\n")
         f.write("<fileinfo>\n")
         f.write("     <streamdetails>\n")
         f.write("         <video>\n")
         f.write("             <codec>h264</codec>\n")
-        f.write("             <aspect>" + str(round(width/height, 2)) + "</aspect>\n")
-        f.write("             <width>" + str(width) + "</width>\n")
-        f.write("             <height>" + str(height) + "</height>\n")
-        f.write("             <durationinseconds>" + str(duration/60) + "</durationinseconds>\n") # minutes
+        f.write(f"             <aspect>{round(width/height, 2)}</aspect>\n")
+        f.write(f"             <width>{width}</width>\n")
+        f.write(f"             <height>{height}</height>\n")
+        f.write(f"             <durationinseconds>{round(duration/60)}</durationinseconds>\n") # minutes
         f.write("             <stereomode></stereomode>\n")
         f.write("         </video>\n")
         f.write("     </streamdetails>\n")
         f.write("</fileinfo>\n")
-        for i in actors:
+        for idx, i in enumerate(actors):
             f.write("<actor>\n")
-            f.write("    <name>" + i + "</name>\n")
-            f.write("    <role>" + self.role + "</role>\n")
-            f.write("    <order>1</order>\n")
-            f.write("    <thumb>" + "nfs://10.0.0.1/volume1/videos/actors/" + i + ".jpg</thumb>\n")
+            f.write(f"    <name>{i}</name>\n")
+            f.write(f"    <role>{self.role}</role>\n")
+            f.write(f"    <order>{idx}</order>\n")
+            f.write(f"    <thumb>{self.absolut_path_artwork_actors}{i}.jpg</thumb>\n")
             f.write("</actor>\n")
         f.write("</resume>\n")
         f.write("    <position>0.000000</position>\n")
         f.write("    <total>0.000000</total>\n")
         f.write("</resume>\n")
-        f.write("<showlink>" + title +"</showlink>\n")
-        f.write("<dateadded>" + self.date_added + "</dateadded>\n")
+        f.write(f"<showlink>{title}</showlink>\n")
+        f.write(f"<dateadded>{self.date_added}</dateadded>\n")
         f.write("</movie>")
         f.close()
         print(f"File: {file_path} created.")
@@ -99,35 +104,33 @@ class Automation():
 
     def generate_poster(self):
         """ generate KODI poster"""
-        subfolders = [ f.path for f in os.scandir(self.mypath_video) if f.is_dir() ]
-        for idy, z in enumerate(subfolders):
-            arr = os.listdir(z)
-            vid = ''
-            for i in arr:
-                if i.find(".jpg") == -1 and i.find(".nfo") == -1 and i.find(".db") == -1:
-                    vid = i
-                else:
-                    pass
+        for idy, z in enumerate(self.subfolders):
+            vid = self.get_video_file(z)
             video_path = z + "/" + vid
             path_nfo = z + "/" + os.path.splitext(vid)[0]
-            poster_path = path_nfo + "-poster.jpg"
             try:
-                if not os.path.exists(poster_path):
+                for k in range(self.number_of_poster):
+                    if k == 0:
+                        poster_path = f"{path_nfo}-poster.jpg"
+                    else:
+                        poster_path = f"{path_nfo}-poster{k}.jpg"
                     cap = cv2.VideoCapture(video_path)
                     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
                     num_images = self.num_rows_pst * self.num_col_pst
-                    x = 24*60*4 #sekunden die übersprungen werden
+                    x = 24*60*4*(k+1) #sekunden die übersprungen werden
+
+
                     interval = round((length-x)/num_images)
                     images = []
                     for idx in range(num_images):
-                        cap.set(1, x);
+                        cap.set(1, x)
                         ret, frame = cap.read()
                         x = x + interval
                         images.append(frame)
                     cap.release()
                     cv2.destroyAllWindows()
                     hori = []
-                    row_count = 0
+
                     for i in range(self.num_rows_pst * self.num_col_pst):
                         if (i % self.num_col_pst) == 0 and i == 0:
                             k = []
@@ -139,7 +142,6 @@ class Automation():
                                 hori.append(np.concatenate((k), axis=1))
                             except:
                                 pass
-                            row_count = row_count + self.num_col_pst
                         if (i % self.num_col_pst) == 0 and i > 0:
                             k = []
                             m = 0
@@ -147,21 +149,18 @@ class Automation():
                                 k.append(images[i + m])
                                 m = m + 1
                             hori.append(np.concatenate((k), axis=1))
-                            row_count = row_count + self.num_col_pst
-                    Vertical_attachment = np.vstack(hori)
-                    filename_thumbnail= str(poster_path)
-                    cv2.imwrite(filename_thumbnail, Vertical_attachment)
+                        Vertical_attachment = np.vstack(hori)
+                        filename_thumbnail= str(poster_path)
+                        cv2.imwrite(filename_thumbnail, Vertical_attachment)
             except Exception as e:
                 print(f"Failed for file: {poster_path}, {e}")
-            print("Poster Progress: ", str(round(idy / len(subfolders) * 100, 1)), "%")
+            print("Poster Progress: ", str(round(idy / len(self.subfolders) * 100, 1)), "%")
 
 
     def delete_all_images(self):
-        """ delete all images in all subfolders"""
-        subfolders = [ f.path for f in os.scandir(self.mypath_video) if f.is_dir() ]
-        for idy, z in enumerate(subfolders):
-            test = os.listdir(z)
-            for images in test:
+        """ delete all images in all self.subfolders"""
+        for z in self.subfolders:
+            for images in os.listdir(z):
                 if images.endswith(".jpg"):
                     print("Remove: ", images, "in ", z)
                     os.remove(os.path.join(z, images))
@@ -176,14 +175,11 @@ class Automation():
     def make_video_dir(self, video_name):
         """ """
         path = self.mypath_video + video_name
-        path_wo_extension = os. path. splitext(path)[0] #remove extension!!!
+        path_wo_extension = os.path.splitext(path)[0] #remove extension!!!
         try:
             if not os.path.exists(path_wo_extension):
-                # print(f"Make: {path_w_extension}")
                 os.makedirs(path_wo_extension)
                 return path_wo_extension
-            else:
-                return 1
         except OSError:
             print('Error: Creating directory of data')
 
@@ -197,43 +193,35 @@ class Automation():
     def move_videos_to_single_folder(self):
         videos = self.get_all_files_in_path()
         for i in videos:
-            abs_folder = self.make_video_dir(i)
-            self.move_file_to_folder(i, abs_folder)
+            self.move_file_to_folder(i, self.make_video_dir(i))
 
 
-    def make_change_nfo_file(self):
-        subfolders = [f.path for f in os.scandir(self.mypath_video) if f.is_dir()]
-        for idx, z in enumerate(subfolders):
-            if z not in 'actors':
-                arr = os.listdir(z)
-                vid = ''
-                for i in arr:
-                    if i.find(".jpg") ==-1 and i.find(".nfo") ==-1 and i.find(".db") ==-1:
-                        vid = i
-                    else:
-                        pass
-                video_path = z + "/" + vid
-                path_nfo = z + "/" + os.path.splitext(vid)[0]
-                title = os.path.splitext(vid)[0]
-                cap = cv2.VideoCapture(video_path)
-                length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                self.make_nfo_file(path_nfo, title=title, duration=length * 24, width=width, height=height, runtime=length * 24)
-            else:
-                pass
+    def get_video_file(self, video):
+        return [i for i in os.listdir(video) if i.find(".jpg") == -1 and i.find(".nfo") == -1 and i.find(".db") == -1][0]
+
+
+    def make_change_nfo_file(self, replace_existing=False):
+        for z in self.subfolders:
+            vid = self.get_video_file(z)
+            video_path = z + "/" + vid
+            path_nfo = z + "/" + os.path.splitext(vid)[0] +".nfo"
+            title = os.path.splitext(vid)[0]
+            cap = cv2.VideoCapture(video_path)
+            length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            if replace_existing and exists(path_nfo):
+                self.make_nfo_file(path_nfo, title=title, duration=length * 24, width=width, height=height,
+                                   runtime=length * 24)
+            elif not exists(path_nfo):
+                self.make_nfo_file(path_nfo, title=title, duration=length * 24, width=width, height=height,
+                                   runtime=length * 24)
+
 
 
     def generate_fanart(self):
-        subfolders = [f.path for f in os.scandir(self.mypath_video) if f.is_dir()]
-        for idy, z in enumerate(subfolders):
-            arr = os.listdir(z)
-            vid = ''
-            for i in arr:
-                if i.find(".jpg") == -1 and i.find(".nfo") == -1 and i.find(".db") == -1:
-                    vid = i
-                else:
-                    pass
+        for idy, z in enumerate(self.subfolders):
+            vid = self.get_video_file(z)
             video_path = z + "/" + vid
             path_nfo = z + "/" + os.path.splitext(vid)[0]
             cap = cv2.VideoCapture(video_path)
@@ -245,15 +233,13 @@ class Automation():
             for idx in range(num_images):
                 fanart = path_nfo + "-fanart" + str(idx + 1) + ".jpg"
                 if not os.path.exists(fanart) or not os.path.exists(path_nfo + "-fanart.jpg"):
-                    cap.set(1, x);
+                    cap.set(1, x)
                     ret, frame = cap.read()
                     if idx == randrange(1, num_images):
                         cv2.imwrite(str(path_nfo + "-fanart.jpg"), frame)
                     cv2.imwrite(fanart, frame)
                     x = x + interval
                     images.append(frame)
-                else:
-                    pass
             cap.release()
             cv2.destroyAllWindows()
 
@@ -287,72 +273,48 @@ class Automation():
                     cv2.imwrite(filename_thumbnail,Vertical_attachment)
                 except:
                     print(f"Failed for file {clearart_path}")
-            print(f"Fanart Progress: {round(idy / len(subfolders) * 100, 1)} %")
+            print(f"Fanart Progress: {round(idy / len(self.subfolders) * 100, 1)} %")
 
 
     def get_actor_list(self):
+        """ get all the actors from the folder"""
         actors_img = [f for f in listdir(self.actor_path) if isfile(join(self.actor_path, f))]
-        actors_list = []
-        for i in actors_img:
-            actors_list.append(Path(i).resolve().stem)
-        return actors_list
+        return [Path(i).resolve().stem for i in actors_img]
 
 
     def get_actor(self, file_name):
         actor_found = []
-        actors_list = self.actor_list
-        word_list = re.split(r"[-._\s]\s*", file_name)
-        word_list2 = []
-        for words in word_list:
-            word_list2.append(words.lower())
-        for i in actors_list:
-            if ' ' in i: # Doppelname!!
-                x = i.split(" ")
-                if x[0].lower() in word_list2 and x[0].lower() in word_list2:
+        word_list = [words.lower() for words in re.split(r"[-._\s]\s*", file_name)]
+
+        for i in self.actor_list:
+            if ' ' in i: # double name
+                if i.split(" ")[0].lower() in word_list and i.split(" ")[0].lower() in word_list:
                     actor_found.append(i)
-                    break
-            else: # kein Doppelname
-                if i.lower() in word_list2:
+
+            else: # no double name
+                if i.lower() in word_list:
                     actor_found.append(i)
-                    break
-        if len(actor_found) > 0:
-            print(f"Actor found: {actor_found}")
-        else:
+
+        if not actor_found:
             print(f"No actor found. {file_name}")
         return actor_found
 
 
     def overwrite_clearart(self):
-        subfolders = [f.path for f in os.scandir(self.mypath_video) if f.is_dir()]
-        for idy, z in enumerate(subfolders):
-            arr = os.listdir(z)
-            vid = ''
-            for i in arr:
-                if i.find(".jpg") == -1 and i.find(".nfo") == -1 and i.find(".db") == -1:
-                    vid = i
-                else:
-                    pass
+        for idy, z in enumerate(self.subfolders):
+            vid = self.get_video_file(z)
             path_nfo = z + "/" + os.path.splitext(vid)[0]
-            #if not os.path.exists(clearart_path):
             from_file = path_nfo + "-clearart.jpg"
             to_file = path_nfo + "-fanart.jpg"
             shutil.copy(from_file, to_file)
-            print("Progress: ", str(round(idy / len(subfolders) * 100, 1)), "%")
+            print("Progress: ", str(round(idy / len(self.subfolders) * 100, 1)), "%")
 
 
     def overwrite_fanart(self): #make fanart.jpg from fanart1-4.jpg
-        subfolders = [f.path for f in os.scandir(self.mypath_video) if f.is_dir()]
-        for idy, z in enumerate(subfolders):
-            arr = os.listdir(z)
-            vid = ''
-            for i in arr:
-                if i.find(".jpg") == -1 and i.find(".nfo") == -1 and i.find(".db") == -1:
-                    vid = i
-                else:
-                    pass
+        for idy, z in enumerate(self.subfolders):
+            vid = self.get_video_file(z)
             path_nfo = z + "/" + os.path.splitext(vid)[0]
-            #if not os.path.exists(clearart_path):
             from_file = path_nfo + "-fanart" + str(randrange(1, 4,1)) + ".jpg"
             to_file = path_nfo + "-fanart.jpg"
             shutil.copy(from_file, to_file)
-            print("Progress: ", str(round(idy / len(subfolders) * 100, 1)), "%")
+            print("Progress: ", str(round(idy / len(self.subfolders) * 100, 1)), "%")
